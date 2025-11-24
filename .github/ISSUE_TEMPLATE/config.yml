@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: 🎧 Support Server
+    url: https://discord.gg/YOURSERVER
+    about: For general support or questions.
+
+  - name: 📚 ChristmasBot Documentation
+    url: https://christmasbot.org/docs
+    about: Documentation for ChristmasBot.
+
+  - name: 📚 HalloweenBot Documentation
+    url: https://halloweenbot.com/docs
+    about: Documentation for HalloweenBot.
