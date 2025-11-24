@@ -1,0 +1,66 @@
+name: Forward Issues to Private Repos
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  forward:
+    runs-on: ubuntu-latest
+
+    permissions:
+      issues: write
+      contents: read
+
+    steps:
+      - name: Determine Target Repo
+        id: route
+        run: |
+          LABELS="${{ join(github.event.issue.labels.*.name, ',') }}"
+
+          if [[ "$LABELS" == *"christmasbot"* ]]; then
+            echo "repo=SeasonalBots/ChristmasBot" >> $GITHUB_OUTPUT
+          elif [[ "$LABELS" == *"halloweenbot"* ]]; then
+            echo "repo=SeasonalBots/HalloweenBot" >> $GITHUB_OUTPUT
+          elif [[ "$LABELS" == *"easterbot"* ]]; then
+            echo "repo=SeasonalBots/EasterBot" >> $GITHUB_OUTPUT
+          else
+            echo "repo=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Stop if no matching repo
+        if: steps.route.outputs.repo == ''
+        run: echo "No matching bot label — skipping forward."
+
+      - name: Create Issue in Private Repo
+        if: steps.route.outputs.repo != ''
+        uses: peter-evans/create-issue@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ steps.route.outputs.repo }}
+          title: "[Forwarded] ${{ github.event.issue.title }}"
+          body: |
+            This issue was reported publicly:
+            https://github.com/${{ github.repository }}/issues/${{ github.event.issue.number }}
+
+            ---
+            **Original Report:**
+            ${{ github.event.issue.body }}
+
+      - name: Comment on Public Issue
+        if: steps.route.outputs.repo != ''
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            Thanks! This issue has been forwarded internally for review.
+            We will update this thread once processed.
+
+      - name: Close Public Issue
+        if: steps.route.outputs.repo != ''
+        uses: peter-evans/close-issue@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.issue.number }}
+          comment: "Internal issue created — closing public report."
